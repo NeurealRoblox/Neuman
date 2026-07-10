@@ -1,0 +1,13 @@
+{
+  "name": "NeuMan Studio Plugin",
+  "tree": {
+    "$className": "DataModel",
+    "NeuMan": {
+      "$className": "Script",
+      "$path": "studio_plugin.luau",
+      "$properties": {
+        "RunContext": "Plugin"
+      }
+    }
+  }
+}

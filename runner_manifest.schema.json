@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neuman.dev/schemas/studio-runner-manifest-v1.json",
+  "title": "NeuMan signed native runner manifest envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["manifest", "signature"],
+  "properties": {
+    "signature": {
+      "type": "string",
+      "pattern": "^hmac-sha256:[0-9a-f]{64}$"
+    },
+    "manifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion", "executorProfile", "runnerImplementationHash", "operation", "operationId", "projectId", "buildId",
+        "logicalBuildHash", "placeKey", "universeId", "placeId",
+        "sourcePlaceVersionId",
+        "issuedAtUnixMs", "expiresAtUnixMs", "nonce", "candidateBaseHash",
+        "cells", "validators", "policy", "receipt"
+      ],
+      "properties": {
+        "schemaVersion": { "const": 1 },
+        "executorProfile": { "enum": ["studio-plugin", "operator-open-cloud"] },
+        "runnerImplementationHash": { "$ref": "#/$defs/sha256" },
+        "operation": { "enum": ["assemble-validate", "validate-only", "publish-validated"] },
+        "operationId": { "type": "string", "pattern": "^op_[0-9a-f-]{36}$" },
+        "projectId": { "type": "string", "pattern": "^prj_[0-9a-f-]{36}$" },
+        "buildId": { "type": "string", "pattern": "^bld_[0-9a-f-]{36}$" },
+        "logicalBuildHash": { "$ref": "#/$defs/contentHash" },
+        "placeKey": { "$ref": "#/$defs/token" },
+        "universeId": { "type": ["string", "null"], "pattern": "^(0|[1-9][0-9]*)$" },
+        "placeId": { "type": ["string", "null"], "pattern": "^(0|[1-9][0-9]*)$" },
+        "sourcePlaceVersionId": { "type": ["string", "null"], "pattern": "^(0|[1-9][0-9]*)$" },
+        "issuedAtUnixMs": { "type": "integer" },
+        "expiresAtUnixMs": { "type": "integer" },
+        "nonce": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+        "candidateBaseHash": { "$ref": "#/$defs/contentHash" },
+        "cells": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": { "$ref": "#/$defs/cell" }
+        },
+        "validators": {
+          "type": "array",
+          "maxItems": 128,
+          "items": { "$ref": "#/$defs/validator" }
+        },
+        "policy": { "$ref": "#/$defs/policy" },
+        "receipt": { "$ref": "#/$defs/receipt" }
+      }
+    }
+  },
+  "$defs": {
+    "token": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z0-9._-]+$" },
+    "contentHash": { "type": "string", "pattern": "^b3-256:[a-z2-7]{52}$" },
+    "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "cell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cellId", "slot", "snapshotHash", "sizeBytes", "mediaType"],
+      "properties": {
+        "cellId": { "type": "string", "pattern": "^cell_[0-9a-f-]{36}$" },
+        "slot": { "type": "string", "minLength": 2, "maxLength": 512, "pattern": "^/[^/\\\\]+(?:/[^/\\\\]+)*$" },
+        "snapshotHash": { "$ref": "#/$defs/contentHash" },
+        "sizeBytes": { "type": "integer", "minimum": 1, "maximum": 100663296 },
+        "mediaType": { "const": "application/vnd.roblox.rbxm" }
+      }
+    },
+    "validator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "implementationHash", "blocking"],
+      "properties": {
+        "id": { "$ref": "#/$defs/token" },
+        "implementationHash": { "$ref": "#/$defs/sha256" },
+        "blocking": { "type": "boolean" }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxInstances", "maxNativeBytes", "forbidArtScripts", "rejectUnknownSchema"],
+      "properties": {
+        "maxInstances": { "type": "integer", "minimum": 1 },
+        "maxNativeBytes": { "type": "integer", "minimum": 1, "maximum": 536870912 },
+        "forbidArtScripts": { "type": "boolean" },
+        "rejectUnknownSchema": { "type": "boolean" }
+      }
+    },
+    "receipt": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["channel", "endpoint", "capabilityId"],
+          "properties": {
+            "channel": { "const": "loopback" },
+            "endpoint": { "type": "string", "maxLength": 512 },
+            "capabilityId": { "type": "string", "minLength": 16, "maxLength": 128, "pattern": "^[A-Za-z0-9._-]+$" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["channel", "correlationId"],
+          "properties": {
+            "channel": { "const": "open-cloud-task-result" },
+            "correlationId": { "type": "string", "pattern": "^op_[0-9a-f-]{36}$" }
+          }
+        }
+      ]
+    }
+  }
+}

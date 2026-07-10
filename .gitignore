@@ -1,0 +1,15 @@
+/target/
+/dist/
+/node_modules/
+/.agents/
+/.neuman/
+/.env
+/.env.*
+!.env.example
+*.log
+*.tmp
+*.rbxl
+*.rbxlx
+*.rbxm
+*.rbxmx
+apps/desktop/src-tauri/target/

@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://neuman.dev/schemas/studio-bridge/1.0.json",
+  "title": "NeuMan Loopback Bridge Protocol 1.0",
+  "description": "Normative JSON shapes for the local-only Studio bridge. Transport limits and sequencing are additionally enforced by the implementation.",
+  "oneOf": [
+    { "$ref": "#/$defs/discovery" },
+    { "$ref": "#/$defs/pairRequest" },
+    { "$ref": "#/$defs/authenticate" },
+    { "$ref": "#/$defs/envelope" }
+  ],
+  "$defs": {
+    "scopedId": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "uuidMessageId": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 128,
+      "pattern": "^(msg_|[0-9a-fA-F])[A-Za-z0-9_-]+$"
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^b3-256:[a-z2-7]{52}$"
+    },
+    "discovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "installationId", "daemonVersion", "protocolMin", "protocolMax", "webSocketUrl", "pairingRequired", "challenge", "expiresAt"],
+      "properties": {
+        "schemaVersion": { "const": "1.0" },
+        "installationId": { "$ref": "#/$defs/scopedId" },
+        "daemonVersion": { "type": "string", "maxLength": 64 },
+        "protocolMin": { "const": "1.0" },
+        "protocolMax": { "const": "1.0" },
+        "webSocketUrl": { "type": "string", "pattern": "^ws://(127\\.0\\.0\\.1|\\[::1\\]):[0-9]+/v1/studio$" },
+        "pairingRequired": { "type": "boolean" },
+        "challenge": { "type": "string", "minLength": 22, "maxLength": 128, "pattern": "^[A-Za-z0-9_-]+$" },
+        "expiresAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "pairRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "challenge", "pairingCode", "pluginInstallationId", "pluginVersion", "protocolVersion"],
+      "properties": {
+        "type": { "const": "pair.request" },
+        "requestId": { "$ref": "#/$defs/uuidMessageId" },
+        "challenge": { "type": "string", "minLength": 22, "maxLength": 128 },
+        "pairingCode": { "type": "string", "pattern": "^[0-9]{6}$" },
+        "pluginInstallationId": { "$ref": "#/$defs/scopedId" },
+        "pluginVersion": { "type": "string", "maxLength": 64 },
+        "protocolVersion": { "const": "1.0" },
+        "studio": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "userId": { "type": ["string", "null"], "maxLength": 32 },
+            "version": { "type": ["string", "null"], "maxLength": 128 },
+            "platform": { "enum": ["windows", "macos", "unknown", null] }
+          }
+        }
+      }
+    },
+    "authenticate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "credential", "pluginInstallationId", "protocolMin", "protocolMax"],
+      "properties": {
+        "type": { "const": "session.authenticate" },
+        "credential": { "type": "string", "minLength": 32, "maxLength": 256 },
+        "pluginInstallationId": { "$ref": "#/$defs/scopedId" },
+        "protocolMin": { "const": "1.0" },
+        "protocolMax": { "const": "1.0" }
+      }
+    },
+    "envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "type", "messageId", "sequence", "sentAt", "sessionId", "payload"],
+      "properties": {
+        "protocolVersion": { "const": "1.0" },
+        "type": {
+          "enum": [
+            "session.hello", "session.context", "session.context-changed", "session.ping", "session.pong", "session.goodbye",
+            "studio.selection-changed", "studio.run-state-changed", "studio.place-context-changed",
+            "art.cell-dirty-changed", "art.lock-status-changed", "art.incoming-summary", "art.capture.proposal", "art.capture.accepted", "art.apply.receipt",
+            "command.request", "command.accepted", "command.progress", "command.succeeded", "command.failed", "command.cancelled",
+            "transfer.offer", "transfer.accept", "transfer.chunk", "transfer.ack", "transfer.complete", "transfer.verified", "transfer.cancel",
+            "diagnostic.event", "protocol.error", "protocol.duplicate-ack"
+          ]
+        },
+        "messageId": { "$ref": "#/$defs/uuidMessageId" },
+        "correlationId": { "type": ["string", "null"], "maxLength": 128 },
+        "sequence": { "type": "integer", "minimum": 1 },
+        "sentAt": { "type": "string", "format": "date-time" },
+        "sessionId": { "$ref": "#/$defs/scopedId" },
+        "payload": { "type": "object" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "transfer.offer" } } },
+          "then": { "properties": { "payload": { "$ref": "#/$defs/transferOffer" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "transfer.chunk" } } },
+          "then": { "properties": { "payload": { "$ref": "#/$defs/transferChunk" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "art.capture.proposal" } } },
+          "then": { "properties": { "payload": { "$ref": "#/$defs/captureProposal" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "art.apply.receipt" } } },
+          "then": { "properties": { "payload": { "$ref": "#/$defs/applyReceipt" } } }
+        }
+      ]
+    },
+    "transferOffer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contextVersion", "transferId", "direction", "purpose", "resourceId", "contentHash", "mediaType", "sizeBytes", "chunkSizeBytes", "chunkCount", "encoding", "compression"],
+      "properties": {
+        "contextVersion": { "type": "integer", "minimum": 1 },
+        "transferId": { "$ref": "#/$defs/scopedId" },
+        "direction": { "const": "upload" },
+        "purpose": { "const": "art-cell" },
+        "resourceId": { "$ref": "#/$defs/scopedId" },
+        "contentHash": { "$ref": "#/$defs/hash" },
+        "mediaType": { "const": "application/x-roblox-rbxm" },
+        "sizeBytes": { "type": "integer", "minimum": 1, "maximum": 100663296 },
+        "chunkSizeBytes": { "type": "integer", "minimum": 1, "maximum": 262144 },
+        "chunkCount": { "type": "integer", "minimum": 1, "maximum": 4096 },
+        "encoding": { "const": "base64url" },
+        "compression": { "const": "none" }
+      }
+    },
+    "transferChunk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transferId", "chunkIndex", "offsetBytes", "rawSizeBytes", "chunkHash", "data"],
+      "properties": {
+        "transferId": { "$ref": "#/$defs/scopedId" },
+        "chunkIndex": { "type": "integer", "minimum": 0, "maximum": 4095 },
+        "offsetBytes": { "type": "integer", "minimum": 0 },
+        "rawSizeBytes": { "type": "integer", "minimum": 1, "maximum": 262144 },
+        "chunkHash": { "$ref": "#/$defs/hash" },
+        "data": { "type": "string", "maxLength": 349536, "pattern": "^[A-Za-z0-9_-]+$" }
+      }
+    },
+    "captureProposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contextVersion", "cellId", "transferId", "slotPath", "mutationEpoch"],
+      "properties": {
+        "contextVersion": { "type": "integer", "minimum": 1 },
+        "cellId": { "$ref": "#/$defs/scopedId" },
+        "transferId": { "$ref": "#/$defs/scopedId" },
+        "slotPath": { "type": "string", "minLength": 2, "maxLength": 1024, "pattern": "^/" },
+        "mutationEpoch": { "type": "integer", "minimum": 0 },
+        "baseRevision": { "type": ["string", "null"], "maxLength": 128 },
+        "semanticFingerprint": { "type": ["string", "null"], "maxLength": 128 }
+      }
+    },
+    "incomingDownload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "token", "expiresAt"],
+      "properties": {
+        "url": { "type": "string", "pattern": "^http://(127\\.0\\.0\\.1|\\[::1\\]):[0-9]+/v1/studio/download/dwn_[A-Za-z0-9_-]+$" },
+        "token": { "type": "string", "minLength": 32, "maxLength": 256, "pattern": "^[A-Za-z0-9_-]+$" },
+        "expiresAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "incomingCell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cellId", "parentPath", "contentHash", "sizeBytes"],
+      "properties": {
+        "cellId": { "$ref": "#/$defs/scopedId" },
+        "parentPath": { "type": "string", "minLength": 2, "maxLength": 1024, "pattern": "^/" },
+        "contentHash": { "$ref": "#/$defs/hash" },
+        "sizeBytes": { "type": "integer", "minimum": 1, "maximum": 100663296 },
+        "data": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
+        "download": { "$ref": "#/$defs/incomingDownload" }
+      },
+      "oneOf": [
+        { "required": ["data"], "not": { "required": ["download"] } },
+        { "required": ["download"], "not": { "required": ["data"] } }
+      ]
+    },
+    "applyReceipt": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["contextVersion", "commandId", "revisionId", "status", "verification"],
+      "properties": {
+        "contextVersion": { "type": "integer", "minimum": 1 },
+        "commandId": { "$ref": "#/$defs/scopedId" },
+        "revisionId": { "$ref": "#/$defs/scopedId" },
+        "status": { "enum": ["succeeded", "failed", "cancelled", "recovery-required"] },
+        "verification": { "enum": ["exact-native", "semantic-equivalent", "applied-unverified", "failed"] }
+      }
+    }
+  },
+  "x-neuman-hash-golden-vectors": [
+    {
+      "utf8": "",
+      "label": "b3-256:v4jutopv7gq2nicajxvdnxgjjgn4wjojvxarfn6mtkj4vza7gjra"
+    },
+    {
+      "utf8": "abc",
+      "label": "b3-256:mq33hlbyizith75whn2soounwvemkwcglv45wa75gwogzvn5twcq"
+    }
+  ],
+  "examples": [
+    {
+      "type": "session.authenticate",
+      "credential": "opaque-credential-redacted-000000000000",
+      "pluginInstallationId": "plg_00000000-0000-4000-8000-000000000000",
+      "protocolMin": "1.0",
+      "protocolMax": "1.0"
+    },
+    {
+      "protocolVersion": "1.0",
+      "type": "session.hello",
+      "messageId": "msg_01900000-0000-7000-8000-000000000000",
+      "correlationId": null,
+      "sequence": 1,
+      "sentAt": "2026-07-09T22:14:03Z",
+      "sessionId": "ses_00000000-0000-4000-8000-000000000000",
+      "payload": {
+        "projectId": "prj_example",
+        "channel": "art/main",
+        "placeId": "123456",
+        "capabilities": ["base64-chunks", "semantic-fingerprint-v1", "apply-transaction-v1", "http-download-v1"]
+      }
+    }
+  ]
+}

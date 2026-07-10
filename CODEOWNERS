@@ -1,0 +1,9 @@
+# Replace or ratify this team in the canonical GitHub organization before enabling branch protection.
+* @neuman-build/maintainers
+
+# Security-sensitive release and identity boundaries always require maintainer review.
+GITHUB_OFFICIAL_RELEASE_WORKFLOW.yml @neuman-build/maintainers
+release_preflight.mjs @neuman-build/maintainers
+tauri.conf.json @neuman-build/maintainers
+SPEC_04_IDENTITY_AUTHENTICATION_AND_AUTHORIZATION.md @neuman-build/maintainers
+SPEC_18_SECURITY_AND_THREAT_MODEL.md @neuman-build/maintainers

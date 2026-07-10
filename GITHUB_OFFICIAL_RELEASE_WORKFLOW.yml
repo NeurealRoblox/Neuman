@@ -1,0 +1,470 @@
+# Repository bootstrap copy: .github/workflows/official-release.yml
+name: Official release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Signed annotated tag, for example v0.1.0
+        required: true
+        type: string
+      expected_commit:
+        description: Full 40-character commit SHA expected behind the tag
+        required: true
+        type: string
+      publish:
+        description: Publish after independent verification; otherwise leave a draft
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  RUSTUP_TOOLCHAIN: 1.93.0
+  CANONICAL_REPOSITORY: neuman-build/neuman
+
+concurrency:
+  group: official-release
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      commit: ${{ steps.tag.outputs.commit }}
+      tag: ${{ steps.tag.outputs.tag }}
+      workflow_commit: ${{ steps.tag.outputs.workflow_commit }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.tag }}
+      EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+    steps:
+      - name: Resolve and verify signed annotated tag
+        id: tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REPOSITORY" == "$CANONICAL_REPOSITORY" ]] || { echo "Official releases run only in $CANONICAL_REPOSITORY" >&2; exit 1; }
+          [[ "$RELEASE_TAG" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]] || { echo "Invalid release tag" >&2; exit 1; }
+          [[ "$EXPECTED_COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo "Expected commit must be a full lowercase SHA" >&2; exit 1; }
+          repository_json="$(gh api -H 'Accept: application/vnd.github+json' "repos/$GITHUB_REPOSITORY")"
+          default_branch="$(jq -er '.default_branch' <<<"$repository_json")"
+          [[ "$GITHUB_REF" == "refs/heads/$default_branch" ]] || { echo "Release workflow must be dispatched from the default branch" >&2; exit 1; }
+          default_branch_uri="$(jq -rn --arg value "$default_branch" '$value | @uri')"
+          default_head="$(gh api -H 'Accept: application/vnd.github+json' "repos/$GITHUB_REPOSITORY/commits/$default_branch_uri" --jq '.sha')"
+          [[ "$GITHUB_SHA" == "$default_head" ]] || { echo "Release workflow must be the current default-branch HEAD" >&2; exit 1; }
+          ref_json="$(gh api -H 'Accept: application/vnd.github+json' "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG")"
+          object_type="$(jq -er '.object.type' <<<"$ref_json")"
+          tag_object="$(jq -er '.object.sha' <<<"$ref_json")"
+          [[ "$object_type" == "tag" ]] || { echo "Release tag must be annotated" >&2; exit 1; }
+          tag_json="$(gh api -H 'Accept: application/vnd.github+json' "repos/$GITHUB_REPOSITORY/git/tags/$tag_object")"
+          signed_name="$(jq -er '.tag' <<<"$tag_json")"
+          verified="$(jq -r '.verification.verified' <<<"$tag_json")"
+          reason="$(jq -r '.verification.reason' <<<"$tag_json")"
+          target_type="$(jq -er '.object.type' <<<"$tag_json")"
+          commit="$(jq -er '.object.sha' <<<"$tag_json")"
+          [[ "$signed_name" == "$RELEASE_TAG" ]] || { echo "The signed tag object's name does not match the ref" >&2; exit 1; }
+          [[ "$verified" == "true" ]] || { echo "GitHub did not verify the tag signature: $reason" >&2; exit 1; }
+          [[ "$reason" == "valid" ]] || { echo "Unexpected GitHub tag verification reason: $reason" >&2; exit 1; }
+          [[ "$target_type" == "commit" ]] || { echo "Nested/non-commit release tags are forbidden" >&2; exit 1; }
+          [[ "$commit" == "$EXPECTED_COMMIT" ]] || { echo "Tag/expected commit mismatch" >&2; exit 1; }
+          [[ "$commit" == "$default_head" ]] || { echo "Release tag must point to the current default-branch HEAD" >&2; exit 1; }
+          printf 'commit=%s\n' "$commit" >> "$GITHUB_OUTPUT"
+          printf 'tag=%s\n' "$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          printf 'workflow_commit=%s\n' "$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ steps.tag.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24.12.0
+          cache: npm
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.93.0 --profile minimal --component clippy --component rustfmt
+      - name: Validate release contract and versions
+        run: node release_preflight.mjs "$RELEASE_TAG"
+
+  quality:
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ needs.preflight.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24.12.0
+          cache: npm
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.93.0 --profile minimal --component clippy --component rustfmt
+      - run: npm ci
+      - run: npm run check:studio
+      - run: npm run build
+      - run: node release_contract_test.mjs
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: cargo test --locked --all-targets
+      - run: cargo clippy --locked --features desktop --bin neuman-desktop -- -D warnings
+      - run: cargo test --locked --features desktop --bin neuman-desktop
+      - name: Re-run release preflight from clean checkout
+        env:
+          RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
+        run: node release_preflight.mjs "$RELEASE_TAG"
+
+  windows:
+    needs: [preflight, quality]
+    runs-on: windows-2025
+    timeout-minutes: 60
+    environment: official-release-signing
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    env:
+      NEUMAN_ROBLOX_OAUTH_CLIENT_ID: ${{ vars.ROBLOX_OAUTH_CLIENT_ID }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ needs.preflight.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24.12.0
+          cache: npm
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.93.0 --profile minimal --component clippy --component rustfmt
+      - run: npm ci
+      - name: Import Authenticode identity into ephemeral runner store
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($required in @($env:WINDOWS_CERTIFICATE, $env:WINDOWS_CERTIFICATE_PASSWORD, $env:TAURI_SIGNING_PRIVATE_KEY, $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD, $env:NEUMAN_ROBLOX_OAUTH_CLIENT_ID)) {
+            if ([string]::IsNullOrWhiteSpace($required)) { throw 'A required signing or public OAuth value is missing.' }
+          }
+          if ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64') { throw "Official Windows builds require an AMD64 runner, observed $env:PROCESSOR_ARCHITECTURE" }
+          $certificatePath = Join-Path $env:RUNNER_TEMP 'neuman-authenticode.pfx'
+          $configPath = Join-Path $env:RUNNER_TEMP 'tauri.windows.release.json'
+          "NEUMAN_WINDOWS_CERT_PATH=$certificatePath" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          "NEUMAN_TAURI_RELEASE_CONFIG=$configPath" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          [IO.File]::WriteAllBytes($certificatePath, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
+          $password = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
+          $certificate = Import-PfxCertificate -FilePath $certificatePath -CertStoreLocation 'Cert:\CurrentUser\My' -Password $password | Select-Object -First 1
+          if (-not $certificate -or -not $certificate.HasPrivateKey) { throw 'The Authenticode private key could not be imported.' }
+          $config = @{ bundle = @{ windows = @{ certificateThumbprint = $certificate.Thumbprint; digestAlgorithm = 'sha256'; timestampUrl = 'http://timestamp.digicert.com' } } } | ConvertTo-Json -Depth 6
+          [IO.File]::WriteAllText($configPath, $config)
+          "NEUMAN_WINDOWS_THUMBPRINT=$($certificate.Thumbprint)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Build signed Windows packages and updater artifacts
+        shell: pwsh
+        run: npm run tauri -- build --features desktop --config "$env:NEUMAN_TAURI_RELEASE_CONFIG" -- --bin neuman-desktop
+      - name: Verify signatures and collect assets
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bundleRoot = Join-Path $PWD 'target\release\bundle'
+          $signed = @(Get-ChildItem $bundleRoot -Recurse -File | Where-Object { $_.Extension -in '.exe', '.msi' })
+          if ($signed.Count -eq 0) { throw 'No Windows installer was produced.' }
+          foreach ($file in $signed) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $file.FullName
+            if ($signature.Status -ne 'Valid') { throw "Invalid Authenticode signature on $($file.FullName)" }
+            if ($signature.SignerCertificate.Thumbprint -ne $env:NEUMAN_WINDOWS_THUMBPRINT) { throw "Unexpected signer on $($file.FullName)" }
+            if (-not $signature.TimeStamperCertificate) { throw "Missing timestamp on $($file.FullName)" }
+          }
+          $updaterSignatures = @(Get-ChildItem $bundleRoot -Recurse -File -Filter '*.sig')
+          if ($updaterSignatures.Count -eq 0) { throw 'No Tauri updater signature was produced.' }
+          foreach ($signatureFile in $updaterSignatures) {
+            if ($signatureFile.Length -lt 64) { throw "Updater signature is unexpectedly short: $($signatureFile.FullName)" }
+            $signedPath = $signatureFile.FullName.Substring(0, $signatureFile.FullName.Length - 4)
+            if (-not (Test-Path -LiteralPath $signedPath -PathType Leaf)) { throw "Updater signature has no matching asset: $($signatureFile.FullName)" }
+          }
+          $assetRoot = Join-Path $PWD 'release-assets'
+          New-Item -ItemType Directory -Path $assetRoot -Force | Out-Null
+          $candidates = @(Get-ChildItem $bundleRoot -Recurse -File | Where-Object { $_.Extension -in '.exe', '.msi', '.sig' })
+          foreach ($file in $candidates) {
+            $destination = Join-Path $assetRoot $file.Name
+            if (Test-Path -LiteralPath $destination) { throw "Duplicate release asset $($file.Name)" }
+            Copy-Item -LiteralPath $file.FullName -Destination $destination
+          }
+          $lines = Get-ChildItem $assetRoot -File | Sort-Object Name | ForEach-Object {
+            "{0}  {1}" -f (Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName).Hash.ToLowerInvariant(), $_.Name
+          }
+          [IO.File]::WriteAllLines((Join-Path $assetRoot 'SHA256SUMS.windows'), $lines)
+      - name: Attest Windows release assets
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: release-assets/**
+      - name: Upload Windows release assets
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: official-windows-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-assets
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+      - name: Remove Windows signing material
+        if: always()
+        shell: pwsh
+        run: |
+          if ($env:NEUMAN_WINDOWS_THUMBPRINT) {
+            $storePath = "Cert:\CurrentUser\My\$env:NEUMAN_WINDOWS_THUMBPRINT"
+            if (Test-Path -LiteralPath $storePath) { Remove-Item -LiteralPath $storePath -Force }
+          }
+          if ($env:NEUMAN_WINDOWS_CERT_PATH -and (Test-Path -LiteralPath $env:NEUMAN_WINDOWS_CERT_PATH)) { Remove-Item -LiteralPath $env:NEUMAN_WINDOWS_CERT_PATH -Force }
+          if ($env:NEUMAN_TAURI_RELEASE_CONFIG -and (Test-Path -LiteralPath $env:NEUMAN_TAURI_RELEASE_CONFIG)) { Remove-Item -LiteralPath $env:NEUMAN_TAURI_RELEASE_CONFIG -Force }
+
+  macos:
+    needs: [preflight, quality]
+    runs-on: macos-15
+    timeout-minutes: 75
+    environment: official-release-signing
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    env:
+      NEUMAN_ROBLOX_OAUTH_CLIENT_ID: ${{ vars.ROBLOX_OAUTH_CLIENT_ID }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+      APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+      APPLE_DEVELOPMENT_TEAM: ${{ vars.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ needs.preflight.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24.12.0
+          cache: npm
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.93.0 --profile minimal --component clippy --component rustfmt
+      - run: npm ci
+      - name: Import Developer ID identity and notarization key
+        shell: bash
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          for value in "$APPLE_CERTIFICATE" "$APPLE_CERTIFICATE_PASSWORD" "$APPLE_API_ISSUER" "$APPLE_API_KEY" "$APPLE_API_PRIVATE_KEY" "$TAURI_SIGNING_PRIVATE_KEY" "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD" "$NEUMAN_ROBLOX_OAUTH_CLIENT_ID" "$APPLE_DEVELOPMENT_TEAM"; do
+            [[ -n "$value" ]] || { echo "A required signing or public OAuth value is missing" >&2; exit 1; }
+          done
+          [[ "$(uname -m)" == "arm64" ]] || { echo "Official macOS builds require an arm64 runner" >&2; exit 1; }
+          [[ "$APPLE_DEVELOPMENT_TEAM" =~ ^[A-Z0-9]{10}$ ]] || { echo "APPLE_TEAM_ID must be a 10-character Apple Team ID" >&2; exit 1; }
+          cert_path="$RUNNER_TEMP/neuman-developer-id.p12"
+          keychain_path="$RUNNER_TEMP/neuman-signing.keychain-db"
+          api_key_path="$RUNNER_TEMP/AuthKey_${APPLE_API_KEY}.p8"
+          printf 'APPLE_API_KEY_PATH=%s\n' "$api_key_path" >> "$GITHUB_ENV"
+          printf 'NEUMAN_APPLE_KEYCHAIN=%s\n' "$keychain_path" >> "$GITHUB_ENV"
+          printf 'NEUMAN_APPLE_CERT_PATH=%s\n' "$cert_path" >> "$GITHUB_ENV"
+          keychain_password="$(openssl rand -hex 32)"
+          echo "::add-mask::$keychain_password"
+          printf '%s' "$APPLE_CERTIFICATE" | base64 --decode > "$cert_path"
+          printf '%s' "$APPLE_API_PRIVATE_KEY" | base64 --decode > "$api_key_path"
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 7200 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+          security import "$cert_path" -k "$keychain_path" -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$keychain_password" "$keychain_path"
+          security list-keychains -d user -s "$keychain_path"
+          identity="$(security find-identity -v -p codesigning "$keychain_path" | grep -F "($APPLE_DEVELOPMENT_TEAM)" | awk -F'"' '/Developer ID Application/ { print $2; exit }')"
+          [[ -n "$identity" ]] || { echo "No Developer ID Application identity was imported" >&2; exit 1; }
+          printf 'APPLE_SIGNING_IDENTITY=%s\n' "$identity" >> "$GITHUB_ENV"
+      - name: Build signed and notarized macOS packages and updater artifacts
+        run: npm run tauri -- build --features desktop -- --bin neuman-desktop
+      - name: Verify signatures and collect assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle_root="target/release/bundle"
+          app_count=0
+          while IFS= read -r -d '' app; do
+            codesign --verify --deep --strict --verbose=2 "$app"
+            signing_details="$(codesign -dv --verbose=4 "$app" 2>&1)"
+            team_id="$(awk -F= '/^TeamIdentifier=/ { print $2; exit }' <<<"$signing_details")"
+            [[ "$team_id" == "$APPLE_DEVELOPMENT_TEAM" ]] || { echo "Unexpected Apple Team ID on $app" >&2; exit 1; }
+            grep -q '^Authority=Developer ID Application:' <<<"$signing_details" || { echo "Unexpected Apple signing authority on $app" >&2; exit 1; }
+            spctl --assess --type execute --verbose=4 "$app"
+            xcrun stapler validate "$app"
+            app_count=$((app_count + 1))
+          done < <(find "$bundle_root/macos" -type d -name '*.app' -print0)
+          [[ $app_count -gt 0 ]] || { echo "No macOS app was produced" >&2; exit 1; }
+          dmg_count=0
+          while IFS= read -r -d '' dmg; do
+            xcrun stapler validate "$dmg"
+            dmg_count=$((dmg_count + 1))
+          done < <(find "$bundle_root" -type f -name '*.dmg' -print0)
+          [[ $dmg_count -gt 0 ]] || { echo "No notarized DMG was produced" >&2; exit 1; }
+          updater_signature_count="$(find "$bundle_root" -type f -name '*.sig' | wc -l | tr -d ' ')"
+          [[ $updater_signature_count -gt 0 ]] || { echo "No Tauri updater signature was produced" >&2; exit 1; }
+          while IFS= read -r -d '' signature; do
+            [[ $(wc -c < "$signature") -ge 64 ]] || { echo "Updater signature is unexpectedly short: $signature" >&2; exit 1; }
+            [[ -f "${signature%.sig}" ]] || { echo "Updater signature has no matching asset: $signature" >&2; exit 1; }
+          done < <(find "$bundle_root" -type f -name '*.sig' -print0)
+          mkdir -p release-assets
+          while IFS= read -r -d '' file; do
+            destination="release-assets/$(basename "$file")"
+            [[ ! -e "$destination" ]] || { echo "Duplicate asset $(basename "$file")" >&2; exit 1; }
+            cp "$file" "$destination"
+          done < <(find "$bundle_root" -type f \( -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*.sig' \) -print0)
+          (cd release-assets && find . -maxdepth 1 -type f ! -name 'SHA256SUMS.macos' -print0 | LC_ALL=C sort -z | xargs -0 shasum -a 256) > release-assets/SHA256SUMS.macos
+      - name: Attest macOS release assets
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: release-assets/**
+      - name: Upload macOS release assets
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: official-macos-arm64-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-assets
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0
+      - name: Remove Apple signing material
+        if: always()
+        shell: bash
+        run: |
+          if [[ -n "${NEUMAN_APPLE_KEYCHAIN:-}" && -e "$NEUMAN_APPLE_KEYCHAIN" ]]; then security delete-keychain "$NEUMAN_APPLE_KEYCHAIN" || true; fi
+          if [[ -n "${NEUMAN_APPLE_CERT_PATH:-}" ]]; then rm -f "$NEUMAN_APPLE_CERT_PATH"; fi
+          if [[ -n "${APPLE_API_KEY_PATH:-}" ]]; then rm -f "$APPLE_API_KEY_PATH"; fi
+
+  draft:
+    needs: [preflight, windows, macos]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: official-release-signing
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
+      RELEASE_COMMIT: ${{ needs.preflight.outputs.commit }}
+      WORKFLOW_SOURCE_COMMIT: ${{ needs.preflight.outputs.workflow_commit }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ needs.preflight.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24.12.0
+      - name: Download signed platform assets
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: official-*-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-downloads
+          merge-multiple: false
+      - name: Verify checksums and build aggregate evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir release-files
+          file_count=0
+          while IFS= read -r -d '' source; do
+            destination="release-files/$(basename "$source")"
+            [[ ! -e "$destination" ]] || { echo "Duplicate platform asset $(basename "$source")" >&2; exit 1; }
+            cp "$source" "$destination"
+            file_count=$((file_count + 1))
+          done < <(find release-downloads -mindepth 2 -maxdepth 2 -type f -print0 | LC_ALL=C sort -z)
+          [[ $file_count -gt 0 ]] || { echo "No platform assets were downloaded for this workflow attempt" >&2; exit 1; }
+          (cd release-files && sha256sum -c SHA256SUMS.windows && sha256sum -c SHA256SUMS.macos)
+          version="${RELEASE_TAG#v}"
+          cp studio_plugin.luau "release-files/neuman-studio-plugin-${version}.luau"
+          workflow_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}"
+          node release_manifest.mjs release-files "$RELEASE_TAG" "$RELEASE_COMMIT" "$GITHUB_REPOSITORY" "$workflow_url" "$WORKFLOW_SOURCE_COMMIT" release-files/release-evidence.json release-files/latest.json
+          (cd release-files && find . -maxdepth 1 -type f ! -name SHA256SUMS -print0 | LC_ALL=C sort -z | xargs -0 sha256sum) > release-files/SHA256SUMS
+      - name: Attest Studio plugin artifact
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: release-files/*.luau
+      - name: Attest static updater manifest
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: release-files/latest.json
+      - name: Attest release evidence
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: release-files/release-evidence.json
+      - name: Attest aggregate checksum manifest
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
+        with:
+          subject-path: release-files/SHA256SUMS
+      - name: Create new non-clobbering draft GitHub Release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then echo "Release already exists; assets are never clobbered" >&2; exit 1; fi
+          mapfile -d '' assets < <(find release-files -maxdepth 1 -type f -print0 | LC_ALL=C sort -z)
+          flags=(--draft --verify-tag --generate-notes --title "NeuMan $RELEASE_TAG" --target "$RELEASE_COMMIT")
+          if [[ "$RELEASE_TAG" == *-* ]]; then flags+=(--prerelease); fi
+          gh release create "$RELEASE_TAG" "${assets[@]}" "${flags[@]}" --repo "$GITHUB_REPOSITORY"
+
+  publish:
+    if: ${{ inputs.publish }}
+    needs: [preflight, draft]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: official-release-publish
+    permissions:
+      contents: write
+      attestations: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
+      RELEASE_COMMIT: ${{ needs.preflight.outputs.commit }}
+      WORKFLOW_SOURCE_COMMIT: ${{ needs.preflight.outputs.workflow_commit }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ needs.preflight.outputs.commit }}
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24.12.0
+      - name: Require the expected release to still be a draft
+        shell: bash
+        run: |
+          set -euo pipefail
+          is_draft="$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq '.isDraft')"
+          [[ "$is_draft" == "true" ]] || { echo "Expected an unpublished draft release" >&2; exit 1; }
+      - name: Download draft assets from GitHub Release
+        run: gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir verify-assets
+      - name: Verify checksums, evidence, and workflow-bound attestations
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd verify-assets && sha256sum -c SHA256SUMS)
+          node release_manifest.mjs --verify verify-assets verify-assets/release-evidence.json "$RELEASE_TAG" "$RELEASE_COMMIT" "$GITHUB_REPOSITORY" "$WORKFLOW_SOURCE_COMMIT"
+          while IFS= read -r -d '' asset; do
+            gh attestation verify "$asset" --repo "$GITHUB_REPOSITORY" --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/official-release.yml" --signer-digest "$WORKFLOW_SOURCE_COMMIT" --deny-self-hosted-runners
+          done < <(find verify-assets -maxdepth 1 -type f -print0 | LC_ALL=C sort -z)
+      - name: Publish verified release
+        run: gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false
+      - name: Require GitHub immutable-release verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6; do
+            if gh release verify "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY"; then exit 0; fi
+            sleep 5
+          done
+          echo "Published release did not receive GitHub immutable-release verification; returning it to draft when possible" >&2
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=true || true
+          exit 1

@@ -1,0 +1,36 @@
+{
+  "name": "neuman-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": "24.12.0"
+  },
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "dev:desktop": "tauri dev --features desktop -- --bin neuman-desktop",
+    "build:desktop:debug": "tauri build --debug --no-bundle --features desktop -- --bin neuman-desktop",
+    "build:desktop": "tauri build --features desktop -- --bin neuman-desktop",
+    "check:studio": "stylua --check studio_plugin.luau",
+    "preview": "vite preview --host 127.0.0.1",
+    "tauri": "tauri",
+    "release:preflight": "node release_preflight.mjs"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.8.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@johnnymorganz/stylua-bin": "2.5.2",
+    "@tauri-apps/cli": "^2.8.4",
+    "@types/node": "^24.3.0",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.2",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.4"
+  }
+}

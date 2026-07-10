@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "NeuMan",
+  "version": "0.1.0",
+  "identifier": "dev.neuman.manager",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "NeuMan",
+        "width": 1040,
+        "height": 760,
+        "minWidth": 720,
+        "minHeight": 620,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": true,
+        "transparent": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost http://127.0.0.1:1420; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:",
+      "capabilities": [
+        {
+          "identifier": "desktop-main",
+          "description": "Typed NeuMan application commands for the main window",
+          "windows": ["main"],
+          "permissions": ["core:default"]
+        }
+      ]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "shortDescription": "Roblox build and release manager",
+    "longDescription": "Open-source Roblox code, art, build, and release manager."
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/neuman-build/neuman/releases/latest/download/latest.json"
+      ],
+      "dangerousInsecureTransportProtocol": false
+    }
+  }
+}
