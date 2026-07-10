@@ -5,7 +5,7 @@ edition = "2024"
 license = "Apache-2.0"
 rust-version = "1.88"
 authors = ["NeuMan Contributors"]
-repository = "https://github.com/neuman-build/neuman"
+repository = "https://github.com/NeurealRoblox/Neuman"
 build = "build.rs"
 
 [workspace]

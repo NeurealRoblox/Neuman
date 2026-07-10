@@ -1,4 +1,4 @@
-# Repository bootstrap copy: .github/workflows/ci.yml
+# Active CI workflow.
 name: CI
 
 on:
@@ -34,8 +34,9 @@ jobs:
         run: rustup toolchain install 1.93.0 --profile minimal --component clippy --component rustfmt
       - run: npm ci
       - run: npm run check:studio
+      - run: npm run check:docs
       - run: npm run build
-      - run: node release_contract_test.mjs
+      - run: node scripts/release/contract-test.mjs
       - run: cargo fmt --all -- --check
       - run: cargo clippy --locked --all-targets -- -D warnings
       - run: cargo test --locked --all-targets

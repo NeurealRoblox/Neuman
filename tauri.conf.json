@@ -46,7 +46,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/neuman-build/neuman/releases/latest/download/latest.json"
+        "https://github.com/NeurealRoblox/Neuman/releases/latest/download/latest.json"
       ],
       "dangerousInsecureTransportProtocol": false
     }

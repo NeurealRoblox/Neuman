@@ -16,7 +16,7 @@ Only the protected official-release workflow may publish an official build. Rele
 
 ## Compatibility and deprecation
 
-Public formats follow `SPEC_00_INDEX_AND_CONVENTIONS.md`. Breaking changes require a migration path, compatibility window, fixtures, and release note. Experimental features must be labeled and cannot become an implicit authority source.
+Public formats follow `/docs/specs/SPEC_00_INDEX_AND_CONVENTIONS.md`. Breaking changes require a migration path, compatibility window, fixtures, and release note. Experimental features must be labeled and cannot become an implicit authority source.
 
 ## Forks and self-hosting
 

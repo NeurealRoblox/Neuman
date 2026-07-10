@@ -1,6 +1,6 @@
 # Contributing to NeuMan
 
-NeuMan accepts focused issues and pull requests that preserve the authority and security invariants in `SPEC_01_PRODUCT_BOUNDARIES_AND_INVARIANTS.md`.
+NeuMan accepts focused issues and pull requests that preserve the authority and security invariants in `/docs/specs/SPEC_01_PRODUCT_BOUNDARIES_AND_INVARIANTS.md`.
 
 ## Development workflow
 
@@ -17,11 +17,12 @@ NeuMan accepts focused issues and pull requests that preserve the authority and 
    cargo test --locked --features desktop --bin neuman-desktop
    npm ci
    npm run check:studio
+   npm run check:docs
    npm run build
-   node release_contract_test.mjs
+   node scripts/release/contract-test.mjs
    ```
 
-5. Update the relevant specification, traceability row, compatibility note, and `IMPLEMENTATION_STATUS.md`. Never turn an unqualified provider or Studio behavior into an implemented claim.
+5. Update the relevant specification, traceability row, compatibility note, and `/docs/status/IMPLEMENTATION_STATUS.md`. Never turn an unqualified provider or Studio behavior into an implemented claim.
 6. Sign off commits with `git commit -s`. The sign-off certifies the Developer Certificate of Origin 1.1: you have the right to submit the work under this repository's license.
 
 ## Review policy

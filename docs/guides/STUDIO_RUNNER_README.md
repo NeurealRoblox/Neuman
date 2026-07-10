@@ -1,6 +1,6 @@
 # Fixed native runner and executor contract
 
-`studio_runner.rs` implements the authenticated declarative boundary for Studio-assisted and operator-owned Open Cloud assembly, validation, and publication described by SPEC-13/14. `native_execution.rs` implements the profile-aware durable orchestration boundary. `runner_manifest.schema.json` is the public envelope schema.
+`studio_runner.rs` implements the authenticated declarative boundary for Studio-assisted and operator-owned Open Cloud assembly, validation, and publication described by SPEC-13/14. `native_execution.rs` implements the profile-aware durable orchestration boundary. `schemas/runner-manifest.schema.json` is the public envelope schema.
 
 The contract deliberately contains no Luau source, filesystem path to repository code, service/method name, arbitrary arguments, cloud credential, or bearer token. The fixed runner shipped in a signed NeuMan release supports only `assemble-validate`, `validate-only`, and `publish-validated`.
 

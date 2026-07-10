@@ -1,0 +1,9 @@
+# Default owner for the bootstrap repository.
+* @Arahant-N
+
+# Security-sensitive release and identity boundaries always require maintainer review.
+/.github/workflows/official-release.yml @Arahant-N
+/scripts/release/preflight.mjs @Arahant-N
+/tauri.conf.json @Arahant-N
+/docs/specs/SPEC_04_IDENTITY_AUTHENTICATION_AND_AUTHORIZATION.md @Arahant-N
+/docs/specs/SPEC_18_SECURITY_AND_THREAT_MODEL.md @Arahant-N

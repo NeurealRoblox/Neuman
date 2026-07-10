@@ -12,10 +12,11 @@
     "dev:desktop": "tauri dev --features desktop -- --bin neuman-desktop",
     "build:desktop:debug": "tauri build --debug --no-bundle --features desktop -- --bin neuman-desktop",
     "build:desktop": "tauri build --features desktop -- --bin neuman-desktop",
+    "check:docs": "node scripts/check-doc-links.mjs",
     "check:studio": "stylua --check studio_plugin.luau",
     "preview": "vite preview --host 127.0.0.1",
     "tauri": "tauri",
-    "release:preflight": "node release_preflight.mjs"
+    "release:preflight": "node scripts/release/preflight.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",

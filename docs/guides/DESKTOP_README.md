@@ -68,7 +68,7 @@ The Roblox resources view invokes a native, read-only provider boundary. The bac
 
 Concrete token-resource targets are enumerated automatically. Roblox owner-wide `U` targets do not contain universe IDs, so the view also supports an exact numeric universe probe. Candidate places come from Roblox's documented read-only place index; clicking a place performs a fresh stable OAuth Get Place call before recording the selection. The resulting typed evidence contains canonical provider paths, parent relationship, metadata/update times, observation time, and the fixed `operator-api-key-only` publishing declaration.
 
-There is deliberately no edit or publish control in this view. See `ROBLOX_RESOURCE_PROVIDER.md` for the fixed endpoints, bounds, evidence model, limitations, tests, and live qualification matrix.
+There is deliberately no edit or publish control in this view. See `/docs/guides/ROBLOX_RESOURCE_PROVIDER.md` for the fixed endpoints, bounds, evidence model, limitations, tests, and live qualification matrix.
 
 Roblox OAuth remains provider-beta functionality. A release must qualify the registered client, granted scopes, callback behavior, token refresh/rotation, revocation, account switching, consent review, and resource enumeration against the current official provider before public distribution.
 
@@ -86,7 +86,7 @@ Pairing sequence:
 
 Selecting a validated workspace computes a context binding from project ID, manifest hash, ownership hash, release-policy hash, default place, authoring target, and default art channel. Without a default place/channel the desktop deliberately leaves mutation traffic unbound.
 
-The embedded desktop adapter commits a verified capture to CAS and an immutable transfer/capture receipt before acknowledging it. It enforces ownership and context, overlays the accepted head, advances only eligible local zero-approval channels, and fans accepted cells only to sessions whose project/place/channel and workspace generation still match, while excluding the source. Protected channels remain proposals. When a credential-free `providers.hub` declaration, exact startup `NEUMAN_HUB_URL`, and OS-vault bearer are present, the native-only adapter in `HUB_DESKTOP_ADAPTER.md` uploads canonical full-state manifests, proposes changed cells, and imports accepted cross-machine revisions before invoking the same Studio apply path.
+The embedded desktop adapter commits a verified capture to CAS and an immutable transfer/capture receipt before acknowledging it. It enforces ownership and context, overlays the accepted head, advances only eligible local zero-approval channels, and fans accepted cells only to sessions whose project/place/channel and workspace generation still match, while excluding the source. Protected channels remain proposals. When a credential-free `providers.hub` declaration, exact startup `NEUMAN_HUB_URL`, and OS-vault bearer are present, the native-only adapter in `/docs/guides/HUB_DESKTOP_ADAPTER.md` uploads canonical full-state manifests, proposes changed cells, and imports accepted cross-machine revisions before invoking the same Studio apply path.
 
 ## Allowlisted desktop operations
 
@@ -113,4 +113,4 @@ Browser-only Vite preview uses a mock backend and performs no mutation. It is fo
 
 ## Packaging
 
-`build.rs` emits a valid deterministic bootstrap PNG/ICO into Cargo `OUT_DIR`. This avoids checking an opaque placeholder binary into the source bootstrap. The Tauri updater plugin and canonical GitHub release endpoint are configured, but the real updater public key is deliberately absent and release preflight blocks until it is provisioned. Production packaging must provide signed brand assets, code signing/notarization, SBOM/provenance, updater signature and rollback testing, platform installer tests, crash redaction, and OS-vault qualification. `OFFICIAL_RELEASES.md` is the normative distribution contract; the protected GitHub workflow sources are `GITHUB_CI_WORKFLOW.yml` and `GITHUB_OFFICIAL_RELEASE_WORKFLOW.yml`.
+`build.rs` emits a valid deterministic bootstrap PNG/ICO into Cargo `OUT_DIR`. This avoids checking an opaque placeholder binary into the source bootstrap. The Tauri updater plugin and canonical GitHub release endpoint are configured, but the real updater public key is deliberately absent and release preflight blocks until it is provisioned. Production packaging must provide signed brand assets, code signing/notarization, SBOM/provenance, updater signature and rollback testing, platform installer tests, crash redaction, and OS-vault qualification. `/docs/guides/OFFICIAL_RELEASES.md` is the normative distribution contract; the protected GitHub workflow sources are `/.github/workflows/ci.yml` and `/.github/workflows/official-release.yml`.

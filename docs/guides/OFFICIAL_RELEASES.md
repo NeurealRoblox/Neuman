@@ -80,7 +80,7 @@ Secrets in `official-release-signing`:
 - `TAURI_SIGNING_PRIVATE_KEY`: Tauri updater private key;
 - `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: updater key password.
 
-The matching Tauri updater public key is public configuration, not a secret. It MUST be embedded in `plugins.updater.pubkey`, the updater plugin MUST be registered in the signed desktop, and the only configured endpoint for the official channel is `https://github.com/neuman-build/neuman/releases/latest/download/latest.json`. The release preflight deliberately fails until all three conditions are present. `dangerousInsecureTransportProtocol` is forbidden.
+The matching Tauri updater public key is public configuration, not a secret. It MUST be embedded in `plugins.updater.pubkey`, the updater plugin MUST be registered in the signed desktop, and the only configured endpoint for the official channel is `https://github.com/NeurealRoblox/Neuman/releases/latest/download/latest.json`. The release preflight deliberately fails until all three conditions are present. `dangerousInsecureTransportProtocol` is forbidden.
 
 The public certificate identities, updater public key, and retirement dates MUST be documented before the first beta. Signing jobs import credentials only into ephemeral runner stores, mask derived secrets, remove temporary files, and destroy temporary keychains/certificate-store entries in `always()` cleanup steps.
 
@@ -89,7 +89,7 @@ Where available, the project SHOULD migrate Windows signing to an HSM-backed or 
 ## 6. Workflow stages
 
 1. **Workflow and tag preflight:** require the canonical repository and current protected default-branch workflow source; validate tag grammar; require an annotated tag object whose signed name matches the ref; require GitHub verification reason `valid`; resolve one commit; and compare the operator-entered SHA.
-2. **Source preflight:** verify Cargo/npm/Tauri/lockfile versions equal the tag; check pinned Rust/Node/action commits; enforce PKCE/public-client/OS-vault/updater markers; reject a client-secret path, hosted telemetry dependency, deployment action, unsafe release trigger, self-hosted signer, or divergent root/workflow copy. CI also runs `release_contract_test.mjs`, a network-free generation/verification/tamper test over disposable release assets.
+2. **Source preflight:** verify Cargo/npm/Tauri/lockfile versions equal the tag; check pinned Rust/Node/action commits; enforce PKCE/public-client/OS-vault/updater markers; reject a client-secret path, hosted telemetry dependency, deployment action, unsafe release trigger, or self-hosted signer. CI also validates documentation layout and runs `scripts/release/contract-test.mjs`, a network-free generation/verification/tamper test over disposable release assets.
 3. **Quality:** run formatting, Clippy with warnings denied, all locked Rust targets, TypeScript checking, and the production renderer build from a clean checkout.
 4. **Windows signing build:** import the certificate, configure the exact thumbprint and SHA-256 timestamping, compile the public OAuth ID, build updater artifacts, and require valid timestamped Authenticode on every MSI/EXE selected for release.
 5. **macOS arm64 signing build:** use an ephemeral keychain, select the reviewed Team ID from an ephemeral keychain, use App Store Connect API notarization, compile the same OAuth ID, build updater artifacts, and require `codesign`, exact Team ID, Developer ID authority, Gatekeeper assessment, and stapler validation. Intel macOS is not an official v1 target.
@@ -122,8 +122,8 @@ After downloading an asset and `SHA256SUMS` from the same release:
 
 ```text
 sha256sum -c SHA256SUMS
-gh attestation verify PATH_TO_ASSET -R neuman-build/neuman \
-  --signer-workflow neuman-build/neuman/.github/workflows/official-release.yml \
+gh attestation verify PATH_TO_ASSET -R NeurealRoblox/Neuman \
+  --signer-workflow NeurealRoblox/Neuman/.github/workflows/official-release.yml \
   --signer-digest WORKFLOW_SOURCE_COMMIT --deny-self-hosted-runners
 ```
 
@@ -139,8 +139,8 @@ Windows users additionally inspect `Get-AuthenticodeSignature` or file Propertie
 
 ## 10. Activation checklist
 
-The checked-in workflow is fail-closed and intentionally cannot produce an official release until maintainers configure the canonical repository, protected environments, immutable releases, public OAuth application, Apple Team ID, platform certificates, notarization key, updater key/public-key, and required reviewers. The updater plugin and canonical GitHub endpoint are registered, but the repository intentionally contains no placeholder verification key; `release_preflight.mjs` reports the missing real public key before any signing job can run. The first release is a rehearsal in disposable accounts; the public-beta label remains blocked by the wider SPEC-22 qualification matrix.
+The checked-in workflow is fail-closed and intentionally cannot produce an official release until maintainers configure the canonical repository, protected environments, immutable releases, public OAuth application, Apple Team ID, platform certificates, notarization key, updater key/public-key, and required reviewers. The updater plugin and canonical GitHub endpoint are registered, but the repository intentionally contains no placeholder verification key; `scripts/release/preflight.mjs` reports the missing real public key before any signing job can run. The first release is a rehearsal in disposable accounts; the public-beta label remains blocked by the wider SPEC-22 qualification matrix.
 
-This bootstrap workspace cannot materialize new nested directories, so the workflow sources are checked in at repository root. Before enabling GitHub Actions, copy `GITHUB_CI_WORKFLOW.yml` byte-for-byte to `.github/workflows/ci.yml` and `GITHUB_OFFICIAL_RELEASE_WORKFLOW.yml` byte-for-byte to `.github/workflows/official-release.yml` in a normal checkout, then review the resulting diff. `release_preflight.mjs` rejects a divergent installed release workflow. A root template alone is not an active workflow and cannot produce an official build.
+Workflows are active only from `.github/workflows`. The CI and official-release definitions are checked in directly at those GitHub-recognized paths; release preflight validates the installed workflow rather than a duplicate template.
 
-The reviewed action commits in the root templates were resolved from the official action repositories on 2026-07-10: checkout v7.0.0, setup-node v6.4.0, attest v4.1.1, upload-artifact v7.0.1, and download-artifact v8.0.1. Updating any pin is a security-sensitive source change and requires reviewing the new upstream commit before changing both the workflow and preflight allowlist.
+The reviewed action commits were resolved from the official action repositories on 2026-07-10: checkout v7.0.0, setup-node v6.4.0, attest v4.1.1, upload-artifact v7.0.1, and download-artifact v8.0.1. Updating any pin is a security-sensitive source change and requires reviewing the new upstream commit before changing both the workflow and preflight allowlist.

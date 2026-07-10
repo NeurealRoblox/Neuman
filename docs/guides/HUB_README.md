@@ -15,7 +15,7 @@ The NeuMan project does not operate a hosted Hub, shared account system, or cent
 - `neuman_hub.rs` is the executable entry point.
 - `hub.rs` contains configuration, API, authorization, repository, storage,
   event streaming, and tests.
-- `hub_schema.sql` is the idempotent SQLite migration.
+- `schemas/hub.sql` is the idempotent SQLite migration.
 - `hub.env.example` lists every supported environment setting.
 
 The workspace registers `neuman_hub.rs` as the `neuman-hub` binary.
@@ -151,7 +151,7 @@ code-execution surface.
 ## Production PostgreSQL adapter
 
 Implement the `Repository` boundary and retain all transaction invariants.
-Production tables correspond directly to `hub_schema.sql`, with these changes:
+Production tables correspond directly to `schemas/hub.sql`, with these changes:
 
 - UUID/UUIDv7-capable columns and JSONB instead of opaque SQLite text where
   operationally useful;

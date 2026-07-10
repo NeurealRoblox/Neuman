@@ -1,4 +1,4 @@
-# Repository bootstrap copy: .github/workflows/official-release.yml
+# Protected manual release workflow.
 name: Official release
 
 on:
@@ -23,7 +23,7 @@ permissions:
 
 env:
   RUSTUP_TOOLCHAIN: 1.93.0
-  CANONICAL_REPOSITORY: neuman-build/neuman
+  CANONICAL_REPOSITORY: NeurealRoblox/Neuman
 
 concurrency:
   group: official-release
@@ -86,7 +86,7 @@ jobs:
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.93.0 --profile minimal --component clippy --component rustfmt
       - name: Validate release contract and versions
-        run: node release_preflight.mjs "$RELEASE_TAG"
+        run: node scripts/release/preflight.mjs "$RELEASE_TAG"
 
   quality:
     needs: preflight
@@ -106,7 +106,7 @@ jobs:
       - run: npm ci
       - run: npm run check:studio
       - run: npm run build
-      - run: node release_contract_test.mjs
+      - run: node scripts/release/contract-test.mjs
       - run: cargo fmt --all -- --check
       - run: cargo clippy --locked --all-targets -- -D warnings
       - run: cargo test --locked --all-targets
@@ -115,7 +115,7 @@ jobs:
       - name: Re-run release preflight from clean checkout
         env:
           RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
-        run: node release_preflight.mjs "$RELEASE_TAG"
+        run: node scripts/release/preflight.mjs "$RELEASE_TAG"
 
   windows:
     needs: [preflight, quality]
@@ -388,7 +388,7 @@ jobs:
           version="${RELEASE_TAG#v}"
           cp studio_plugin.luau "release-files/neuman-studio-plugin-${version}.luau"
           workflow_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/attempts/${GITHUB_RUN_ATTEMPT}"
-          node release_manifest.mjs release-files "$RELEASE_TAG" "$RELEASE_COMMIT" "$GITHUB_REPOSITORY" "$workflow_url" "$WORKFLOW_SOURCE_COMMIT" release-files/release-evidence.json release-files/latest.json
+          node scripts/release/manifest.mjs release-files "$RELEASE_TAG" "$RELEASE_COMMIT" "$GITHUB_REPOSITORY" "$workflow_url" "$WORKFLOW_SOURCE_COMMIT" release-files/release-evidence.json release-files/latest.json
           (cd release-files && find . -maxdepth 1 -type f ! -name SHA256SUMS -print0 | LC_ALL=C sort -z | xargs -0 sha256sum) > release-files/SHA256SUMS
       - name: Attest Studio plugin artifact
         uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763 # v4.1.1
@@ -451,7 +451,7 @@ jobs:
         run: |
           set -euo pipefail
           (cd verify-assets && sha256sum -c SHA256SUMS)
-          node release_manifest.mjs --verify verify-assets verify-assets/release-evidence.json "$RELEASE_TAG" "$RELEASE_COMMIT" "$GITHUB_REPOSITORY" "$WORKFLOW_SOURCE_COMMIT"
+          node scripts/release/manifest.mjs --verify verify-assets verify-assets/release-evidence.json "$RELEASE_TAG" "$RELEASE_COMMIT" "$GITHUB_REPOSITORY" "$WORKFLOW_SOURCE_COMMIT"
           while IFS= read -r -d '' asset; do
             gh attestation verify "$asset" --repo "$GITHUB_REPOSITORY" --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/official-release.yml" --signer-digest "$WORKFLOW_SOURCE_COMMIT" --deny-self-hosted-runners
           done < <(find verify-assets -maxdepth 1 -type f -print0 | LC_ALL=C sort -z)

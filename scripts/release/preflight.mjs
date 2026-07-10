@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const CANONICAL_REPOSITORY = "neuman-build/neuman";
+const CANONICAL_REPOSITORY = "NeurealRoblox/Neuman";
 const OFFICIAL_WORKFLOW_PATH = ".github/workflows/official-release.yml";
 const EXPECTED_ACTIONS = new Map([
   ["actions/checkout", "9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0"],
@@ -17,15 +17,6 @@ function fail(message) {
 
 function read(path) {
   return readFileSync(resolve(path), "utf8");
-}
-
-function optionalRead(path) {
-  try {
-    return read(path);
-  } catch (error) {
-    if (error?.code === "ENOENT") return undefined;
-    throw error;
-  }
 }
 
 function parseCanonicalTag(value) {
@@ -161,12 +152,7 @@ if (!cargo.includes("tauri-plugin-updater") || !desktop.includes("tauri_plugin_u
   fail("the signed desktop does not register the Tauri updater plugin");
 }
 
-const rootWorkflow = read("GITHUB_OFFICIAL_RELEASE_WORKFLOW.yml");
-const installedWorkflow = optionalRead(OFFICIAL_WORKFLOW_PATH);
-if (installedWorkflow !== undefined && installedWorkflow !== rootWorkflow) {
-  fail(`${OFFICIAL_WORKFLOW_PATH} is not byte-for-byte identical to its reviewed root bootstrap source`);
-}
-const workflow = installedWorkflow ?? rootWorkflow;
+const workflow = read(OFFICIAL_WORKFLOW_PATH);
 const tauriBuilds = [...workflow.matchAll(/npm run tauri -- build[^\r\n]*/g)].map((match) => match[0]);
 if (
   tauriBuilds.length !== 2 ||
@@ -212,21 +198,22 @@ for (const forbidden of ["aws-actions/", "azure/", "google-github-actions/", "ve
 }
 assertPinnedActions(workflow, "official release workflow");
 
-const ciWorkflow = read("GITHUB_CI_WORKFLOW.yml");
+const ciWorkflow = read(".github/workflows/ci.yml");
 assertPinnedActions(ciWorkflow, "CI workflow");
 if (!ciWorkflow.includes("persist-credentials: false")) fail("CI checkout persists GitHub credentials");
-if (!ciWorkflow.includes("node release_contract_test.mjs")) fail("CI does not exercise the release contract test");
+if (!ciWorkflow.includes("npm run check:docs")) fail("CI does not validate documentation links and layout");
+if (!ciWorkflow.includes("node scripts/release/contract-test.mjs")) fail("CI does not exercise the release contract test");
 
 const dependencyNames = Object.keys({ ...packageJson.dependencies, ...packageJson.devDependencies });
 if (dependencyNames.some((name) => /sentry|datadog|newrelic|posthog|segment|amplitude/i.test(name))) {
   fail("an unapproved hosted telemetry dependency is present");
 }
-const officialContract = read("OFFICIAL_RELEASES.md");
+const officialContract = read("docs/guides/OFFICIAL_RELEASES.md");
 for (const invariant of [
   "does not operate an account service",
   "No `client_secret` exists",
   "distribution, not a central project-data service",
-  "A root template alone is not an active workflow",
+  "Workflows are active only from `.github/workflows`.",
 ]) {
   if (!officialContract.includes(invariant)) fail(`official distribution invariant is missing: ${invariant}`);
 }
@@ -247,7 +234,7 @@ console.log(
       publicOAuthClient: true,
       runtimeDataService: "none",
       updaterEndpoint: expectedUpdaterEndpoint,
-      workflowSource: installedWorkflow === undefined ? "root-bootstrap" : OFFICIAL_WORKFLOW_PATH,
+      workflowSource: OFFICIAL_WORKFLOW_PATH,
     },
     null,
     2,

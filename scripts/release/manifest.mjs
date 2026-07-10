@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { closeSync, fstatSync, lstatSync, openSync, readFileSync, readSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 
-const CANONICAL_REPOSITORY = "neuman-build/neuman";
+const CANONICAL_REPOSITORY = "NeurealRoblox/Neuman";
 const SIGNER_WORKFLOW = `${CANONICAL_REPOSITORY}/.github/workflows/official-release.yml`;
 const SAFE_NAME = /^[A-Za-z0-9][A-Za-z0-9._+-]{0,199}$/;
 const TAG_PATTERN = /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
@@ -219,7 +219,7 @@ function sameJson(left, right) {
 function generate(args) {
   const [rootArg, tag, commit, repository, workflowUrl, workflowSourceCommit, outputArg, updaterOutputArg] = args;
   if (!rootArg || !outputArg || !updaterOutputArg) {
-    fail("usage: node release_manifest.mjs ROOT TAG COMMIT REPOSITORY WORKFLOW_URL WORKFLOW_SOURCE_COMMIT EVIDENCE_OUTPUT UPDATER_OUTPUT");
+    fail("usage: node scripts/release/manifest.mjs ROOT TAG COMMIT REPOSITORY WORKFLOW_URL WORKFLOW_SOURCE_COMMIT EVIDENCE_OUTPUT UPDATER_OUTPUT");
   }
   const version = parseTag(tag);
   validateCommit(commit, "COMMIT");
@@ -251,7 +251,7 @@ function generate(args) {
 function verify(args) {
   const [rootArg, evidenceArg, tag, commit, repository, workflowSourceCommit] = args;
   if (!rootArg || !evidenceArg) {
-    fail("usage: node release_manifest.mjs --verify ROOT EVIDENCE TAG COMMIT REPOSITORY WORKFLOW_SOURCE_COMMIT");
+    fail("usage: node scripts/release/manifest.mjs --verify ROOT EVIDENCE TAG COMMIT REPOSITORY WORKFLOW_SOURCE_COMMIT");
   }
   const version = parseTag(tag);
   validateCommit(commit, "COMMIT");

@@ -90,7 +90,7 @@ User-entered IDs are allowed only as lookup hints; API result establishes identi
 
 The implemented desktop provider uses `POST /oauth/v1/token/resources` to enumerate concrete universe targets, then stable OAuth `Get Universe` and `Get Place` reads. Roblox may return the owner-wide target value `U`, which grants access but does not enumerate universe IDs; in that case the UI accepts an exact numeric lookup hint and requires the provider read to succeed. The current Open Cloud schema has no stable OAuth List Places operation. NeuMan MAY use the documented unauthenticated `GET https://develop.roblox.com/v1/universes/{universeId}/places` index to discover candidate place IDs only after the universe is authorized, but MUST perform the stable OAuth Get Place read before the place becomes an authoritative selection. Index metadata alone is never access evidence.
 
-The native desktop owns the OS-vault read and returns only typed metadata/evidence. Resource commands refresh a near-expiry access token through the protected rotating session, use pinned HTTPS origins, disable redirects, bound every response/pagination sequence, and clear inventory/selection on failure. See `ROBLOX_RESOURCE_PROVIDER.md`.
+The native desktop owns the OS-vault read and returns only typed metadata/evidence. Resource commands refresh a near-expiry access token through the protected rotating session, use pinned HTTPS origins, disable redirects, bound every response/pagination sequence, and clear inventory/selection on failure. See `/docs/guides/ROBLOX_RESOURCE_PROVIDER.md`.
 
 ## 8. Universe operations
 
@@ -161,7 +161,7 @@ Arguments are arrays, never shell. IDs/paths revalidated. NeuMan does not attach
 
 ## 13. Engine runner
 
-Runner is a fixed, versioned Luau program shipped/signed with NeuMan. It MUST NOT read/execute Luau from repository, Hub, or provider. The signed declarative manifest and receipt contract is implemented in `studio_runner.rs` and `runner_manifest.schema.json`; profile dispatch, durable Open Cloud action state, and the operator-only credential adapter boundary are implemented in `native_execution.rs`.
+Runner is a fixed, versioned Luau program shipped/signed with NeuMan. It MUST NOT read/execute Luau from repository, Hub, or provider. The signed declarative manifest and receipt contract is implemented in `studio_runner.rs` and `schemas/runner-manifest.schema.json`; profile dispatch, durable Open Cloud action state, and the operator-only credential adapter boundary are implemented in `native_execution.rs`.
 
 Execution profiles are capability-specific:
 

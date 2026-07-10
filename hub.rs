@@ -1,6 +1,6 @@
 #![allow(
     missing_docs,
-    reason = "REST wire models are exhaustively documented in HUB_README.md and the versioned schema"
+    reason = "REST wire models are exhaustively documented in /docs/guides/HUB_README.md and the versioned schema"
 )]
 
 //! Self-hosted NeuMan Hub reference service.
@@ -47,7 +47,7 @@ use crate::domain::{
 #[cfg(test)]
 use std::path::Path as FsPath;
 
-const SCHEMA: &str = include_str!("hub_schema.sql");
+const SCHEMA: &str = include_str!("schemas/hub.sql");
 const API_VERSION: &str = "v1";
 const LEASE_DURATION_MS: i64 = 120_000;
 const LEASE_RENEWAL_TARGET_MS: i64 = 30_000;

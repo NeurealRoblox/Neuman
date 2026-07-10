@@ -8,7 +8,7 @@ Roblox Studio plugin described by SPEC-07 and SPEC-08.
 - `bridge.rs` is the embeddable daemon-side bridge implementation.
 - `neuman_bridge.rs` is a diagnostic standalone host with explicit console
   approval. The desktop embeds the same library and presents approval in its UI.
-- `bridge_protocol.schema.json` is the checked-in protocol 1.0 JSON Schema and
+- `schemas/bridge-protocol.schema.json` is the checked-in protocol 1.0 JSON Schema and
   includes conformance examples.
 - `studio_plugin.luau` is the auditable, single-script Studio distribution.
 - `studio.project.json` builds the script as a plugin with Rojo.

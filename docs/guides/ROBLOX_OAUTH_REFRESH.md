@@ -1,7 +1,7 @@
 # Roblox public-client refresh rotation
 
 Source: `roblox_oauth.rs`  
-Specification: `SPEC_04_IDENTITY_AUTHENTICATION_AND_AUTHORIZATION.md`
+Specification: `/docs/specs/SPEC_04_IDENTITY_AUTHENTICATION_AND_AUTHORIZATION.md`
 
 ## Boundary
 

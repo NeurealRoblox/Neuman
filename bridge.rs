@@ -1,6 +1,6 @@
 #![allow(
     missing_docs,
-    reason = "the wire contract is documented in STUDIO_BRIDGE_README.md and bridge_protocol.schema.json"
+    reason = "the wire contract is documented in /docs/guides/STUDIO_BRIDGE_README.md and schemas/bridge-protocol.schema.json"
 )]
 
 //! Authenticated, loopback-only bridge used by the NeuMan Studio plugin.

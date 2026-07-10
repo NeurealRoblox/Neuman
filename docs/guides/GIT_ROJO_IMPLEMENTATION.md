@@ -1,7 +1,7 @@
 # Git and Rojo local integration
 
 Status: implemented reference module  
-Specification: `SPEC_11_GIT_AND_ROJO_INTEGRATION.md`  
+Specification: `/docs/specs/SPEC_11_GIT_AND_ROJO_INTEGRATION.md`
 Source: `git_rojo.rs`
 
 ## Scope and authority

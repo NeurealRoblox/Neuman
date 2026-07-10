@@ -4,9 +4,9 @@ Status: Draft for implementation review
 Version: 0.1.0  
 Last updated: 2026-07-09  
 Supersedes: none  
-Primary architecture: `ROBLOX_BUILD_MANAGER_ARCHITECTURE.md`
+Primary architecture: `/docs/architecture/ROBLOX_BUILD_MANAGER_ARCHITECTURE.md`
 
-Architecture decisions that narrow these specifications are recorded as `ADR_NNN_*`; [ADR-001](ADR_001_ROBLOX_NATIVE_ASSEMBLY_PROFILES.md) defines the accepted Roblox native-assembly execution profiles, and [ADR-002](ADR_002_LORE_AS_OPTIONAL_ART_STORAGE.md) keeps Epic Lore as an optional measured art-storage adapter rather than v1 authority.
+Architecture decisions that narrow these specifications are recorded as `ADR_NNN_*`; [ADR-001](/docs/adrs/ADR_001_ROBLOX_NATIVE_ASSEMBLY_PROFILES.md) defines the accepted Roblox native-assembly execution profiles, and [ADR-002](/docs/adrs/ADR_002_LORE_AS_OPTIONAL_ART_STORAGE.md) keeps Epic Lore as an optional measured art-storage adapter rather than v1 authority.
 
 ## 1. Purpose
 
@@ -46,35 +46,35 @@ NeuMan is an open-source Roblox development and release manager composed of:
 
 NeuMan does not replace Roblox Studio, Team Create, Git, Rojo, GitHub, or Roblox Open Cloud. It provides explicit contracts and orchestration between them.
 
-The official project operates no NeuMan account system, OAuth proxy, multi-tenant Hub, central project/art database, or default telemetry collector. The desktop is local-first; optional team infrastructure is self-hosted/user-owned. Official binaries are distributed through a protected, signed, attested GitHub release workflow as specified by SPEC-20/21 and `OFFICIAL_RELEASES.md`.
+The official project operates no NeuMan account system, OAuth proxy, multi-tenant Hub, central project/art database, or default telemetry collector. The desktop is local-first; optional team infrastructure is self-hosted/user-owned. Official binaries are distributed through a protected, signed, attested GitHub release workflow as specified by SPEC-20/21 and `/docs/guides/OFFICIAL_RELEASES.md`.
 
 ## 4. Specification catalog
 
 | ID | File | Normative subject | Depends on |
 |---|---|---|---|
-| SPEC-00 | `SPEC_00_INDEX_AND_CONVENTIONS.md` | Index, vocabulary, compatibility, governance | Architecture |
-| SPEC-01 | `SPEC_01_PRODUCT_BOUNDARIES_AND_INVARIANTS.md` | Goals, boundaries, actors, system invariants | SPEC-00 |
-| SPEC-02 | `SPEC_02_DOMAIN_MODEL_AND_STATE_MACHINES.md` | Entities, identifiers, events, lifecycle state machines | SPEC-00, SPEC-01 |
-| SPEC-03 | `SPEC_03_PROJECT_MANIFEST_AND_CONFIGURATION.md` | Project manifest, lockfile, local configuration | SPEC-02 |
-| SPEC-04 | `SPEC_04_IDENTITY_AUTHENTICATION_AND_AUTHORIZATION.md` | Identities, accounts, sessions, roles, authorization | SPEC-02, SPEC-03 |
-| SPEC-05 | `SPEC_05_DESKTOP_APPLICATION.md` | Desktop UX, screens, application shell, accessibility | SPEC-01–04 |
-| SPEC-06 | `SPEC_06_CORE_DAEMON_AND_CLI.md` | Process model, IPC, commands, local cache, supervisors | SPEC-02–04 |
-| SPEC-07 | `SPEC_07_STUDIO_PLUGIN.md` | Plugin UX, capture/apply behavior, Studio lifecycle | SPEC-02–04, SPEC-08–10 |
-| SPEC-08 | `SPEC_08_LOOPBACK_BRIDGE_PROTOCOL.md` | Discovery, pairing, messages, transfer, retry | SPEC-02, SPEC-04 |
-| SPEC-09 | `SPEC_09_ART_CELLS_REVISIONS_AND_DIFFS.md` | Native cell format, identity, revision graph, merge/diff | SPEC-02–03 |
-| SPEC-10 | `SPEC_10_TERRAIN_SERVICES_ASSETS_AND_PACKAGES.md` | Terrain, service state, external assets, packages | SPEC-02–03, SPEC-09 |
-| SPEC-11 | `SPEC_11_GIT_AND_ROJO_INTEGRATION.md` | Git workspaces, ownership partitions, Rojo lifecycle | SPEC-02–03, SPEC-09 |
-| SPEC-12 | `SPEC_12_GITHUB_APP_INTEGRATION.md` | GitHub App auth, permissions, webhooks, checks, PRs | SPEC-04, SPEC-11 |
-| SPEC-13 | `SPEC_13_ROBLOX_INTEGRATION.md` | OAuth, Open Cloud, Studio discovery/CLI, API policy | SPEC-03–04 |
-| SPEC-14 | `SPEC_14_BUILD_ENGINE.md` | Build graph, toolchain, validation, artifacts | SPEC-02–03, SPEC-09–13 |
-| SPEC-15 | `SPEC_15_RELEASE_PUBLISH_ROLLBACK_AND_DRIFT.md` | Environments, approvals, publishing, rollback, drift | SPEC-02, SPEC-13–14 |
-| SPEC-16 | `SPEC_16_HUB_CONTROL_PLANE.md` | Hub APIs, locks, presence, relay, team coordination | SPEC-02–04, SPEC-09 |
-| SPEC-17 | `SPEC_17_STORAGE_CAS_GIT_LFS_AND_LORE.md` | CAS, object layout, provider API, Git LFS, Lore | SPEC-02, SPEC-09, SPEC-14 |
-| SPEC-18 | `SPEC_18_SECURITY_AND_THREAT_MODEL.md` | Trust boundaries, threats, cryptography, secure defaults | All component specs |
-| SPEC-19 | `SPEC_19_OBSERVABILITY_RELIABILITY_AND_BACKUP.md` | Logs, metrics, health, SLOs, recovery, support bundles | All runtime specs |
-| SPEC-20 | `SPEC_20_TESTING_COMPATIBILITY_AND_RELEASE_ENGINEERING.md` | Test pyramid, matrices, gates, signing, updates | All specs |
-| SPEC-21 | `SPEC_21_OPEN_SOURCE_GOVERNANCE_AND_DISTRIBUTION.md` | Licensing, governance, contribution, packaging | SPEC-00, SPEC-18–20 |
-| SPEC-22 | `SPEC_22_TRACEABILITY_AND_ACCEPTANCE_MATRIX.md` | Requirement-to-test traceability and readiness checklist | All specs |
+| SPEC-00 | `/docs/specs/SPEC_00_INDEX_AND_CONVENTIONS.md` | Index, vocabulary, compatibility, governance | Architecture |
+| SPEC-01 | `/docs/specs/SPEC_01_PRODUCT_BOUNDARIES_AND_INVARIANTS.md` | Goals, boundaries, actors, system invariants | SPEC-00 |
+| SPEC-02 | `/docs/specs/SPEC_02_DOMAIN_MODEL_AND_STATE_MACHINES.md` | Entities, identifiers, events, lifecycle state machines | SPEC-00, SPEC-01 |
+| SPEC-03 | `/docs/specs/SPEC_03_PROJECT_MANIFEST_AND_CONFIGURATION.md` | Project manifest, lockfile, local configuration | SPEC-02 |
+| SPEC-04 | `/docs/specs/SPEC_04_IDENTITY_AUTHENTICATION_AND_AUTHORIZATION.md` | Identities, accounts, sessions, roles, authorization | SPEC-02, SPEC-03 |
+| SPEC-05 | `/docs/specs/SPEC_05_DESKTOP_APPLICATION.md` | Desktop UX, screens, application shell, accessibility | SPEC-01–04 |
+| SPEC-06 | `/docs/specs/SPEC_06_CORE_DAEMON_AND_CLI.md` | Process model, IPC, commands, local cache, supervisors | SPEC-02–04 |
+| SPEC-07 | `/docs/specs/SPEC_07_STUDIO_PLUGIN.md` | Plugin UX, capture/apply behavior, Studio lifecycle | SPEC-02–04, SPEC-08–10 |
+| SPEC-08 | `/docs/specs/SPEC_08_LOOPBACK_BRIDGE_PROTOCOL.md` | Discovery, pairing, messages, transfer, retry | SPEC-02, SPEC-04 |
+| SPEC-09 | `/docs/specs/SPEC_09_ART_CELLS_REVISIONS_AND_DIFFS.md` | Native cell format, identity, revision graph, merge/diff | SPEC-02–03 |
+| SPEC-10 | `/docs/specs/SPEC_10_TERRAIN_SERVICES_ASSETS_AND_PACKAGES.md` | Terrain, service state, external assets, packages | SPEC-02–03, SPEC-09 |
+| SPEC-11 | `/docs/specs/SPEC_11_GIT_AND_ROJO_INTEGRATION.md` | Git workspaces, ownership partitions, Rojo lifecycle | SPEC-02–03, SPEC-09 |
+| SPEC-12 | `/docs/specs/SPEC_12_GITHUB_APP_INTEGRATION.md` | GitHub App auth, permissions, webhooks, checks, PRs | SPEC-04, SPEC-11 |
+| SPEC-13 | `/docs/specs/SPEC_13_ROBLOX_INTEGRATION.md` | OAuth, Open Cloud, Studio discovery/CLI, API policy | SPEC-03–04 |
+| SPEC-14 | `/docs/specs/SPEC_14_BUILD_ENGINE.md` | Build graph, toolchain, validation, artifacts | SPEC-02–03, SPEC-09–13 |
+| SPEC-15 | `/docs/specs/SPEC_15_RELEASE_PUBLISH_ROLLBACK_AND_DRIFT.md` | Environments, approvals, publishing, rollback, drift | SPEC-02, SPEC-13–14 |
+| SPEC-16 | `/docs/specs/SPEC_16_HUB_CONTROL_PLANE.md` | Hub APIs, locks, presence, relay, team coordination | SPEC-02–04, SPEC-09 |
+| SPEC-17 | `/docs/specs/SPEC_17_STORAGE_CAS_GIT_LFS_AND_LORE.md` | CAS, object layout, provider API, Git LFS, Lore | SPEC-02, SPEC-09, SPEC-14 |
+| SPEC-18 | `/docs/specs/SPEC_18_SECURITY_AND_THREAT_MODEL.md` | Trust boundaries, threats, cryptography, secure defaults | All component specs |
+| SPEC-19 | `/docs/specs/SPEC_19_OBSERVABILITY_RELIABILITY_AND_BACKUP.md` | Logs, metrics, health, SLOs, recovery, support bundles | All runtime specs |
+| SPEC-20 | `/docs/specs/SPEC_20_TESTING_COMPATIBILITY_AND_RELEASE_ENGINEERING.md` | Test pyramid, matrices, gates, signing, updates | All specs |
+| SPEC-21 | `/docs/specs/SPEC_21_OPEN_SOURCE_GOVERNANCE_AND_DISTRIBUTION.md` | Licensing, governance, contribution, packaging | SPEC-00, SPEC-18–20 |
+| SPEC-22 | `/docs/specs/SPEC_22_TRACEABILITY_AND_ACCEPTANCE_MATRIX.md` | Requirement-to-test traceability and readiness checklist | All specs |
 
 No implementation phase may begin until the specifications it depends on have reached at least **Accepted for Alpha** status.
 
@@ -223,7 +223,7 @@ Each experiment MUST produce a versioned report and an ADR with `accepted`, `rej
 
 ## 14. References
 
-- `ROBLOX_BUILD_MANAGER_ARCHITECTURE.md`
+- `/docs/architecture/ROBLOX_BUILD_MANAGER_ARCHITECTURE.md`
 - [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119)
 - [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174)
 - [RFC 8785](https://www.rfc-editor.org/rfc/rfc8785)

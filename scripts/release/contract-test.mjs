@@ -4,12 +4,12 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 
-const script = resolve("release_manifest.mjs");
+const script = resolve("scripts/release/manifest.mjs");
 const root = mkdtempSync(join(tmpdir(), "neuman-release-contract-"));
 const tag = "v0.1.0";
 const sourceCommit = "a".repeat(40);
 const workflowCommit = "b".repeat(40);
-const repository = "neuman-build/neuman";
+const repository = "NeurealRoblox/Neuman";
 const workflowUrl = `https://github.com/${repository}/actions/runs/123/attempts/1`;
 
 function write(name, value) {

@@ -314,7 +314,7 @@ Plugin:
 - Publish release notes, compatibility, known limitations, migrations, signer identities, updater-key identity, and consumer verification commands.
 - Maintain documented key rotation, revocation, compromised-release withdrawal, emergency reinstall, and no-same-tag-replacement processes.
 
-The full normative key inventory, workflow contract, evidence set, consumer commands, and incident procedure are in `OFFICIAL_RELEASES.md`. `GITHUB_CI_WORKFLOW.yml` and `GITHUB_OFFICIAL_RELEASE_WORKFLOW.yml` are repository-bootstrap sources for `.github/workflows/ci.yml` and `.github/workflows/official-release.yml`; they MUST be copied byte-for-byte into those GitHub-recognized paths before any build is called official.
+The full normative key inventory, workflow contract, evidence set, consumer commands, and incident procedure are in `/docs/guides/OFFICIAL_RELEASES.md`. `/.github/workflows/ci.yml` and `/.github/workflows/official-release.yml` are repository-bootstrap sources for `.github/workflows/ci.yml` and `.github/workflows/official-release.yml`; they MUST be copied byte-for-byte into those GitHub-recognized paths before any build is called official.
 
 ## 18. Updater tests
 
